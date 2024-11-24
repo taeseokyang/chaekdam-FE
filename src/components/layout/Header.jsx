@@ -18,7 +18,7 @@ const HeaderContent = styled.div`
   justify-content: space-between;
 `;
 
-const HomeTitle = styled.div`
+const Title = styled.div`
   color: #F96B5B;
   font-weight: 800;
   font-size: 26px;
@@ -27,31 +27,29 @@ const HomeTitle = styled.div`
 const Logout = styled.div`
   font-size: 14px;
   color: #bcbcbc;
-  cursor: pointer; /* 클릭 가능하도록 커서 모양 추가 */
+  cursor: pointer; 
 `;
 
 const Header = () => {
-  const [, setCookie, removeCookie] = useCookies(); // 쿠키 삭제를 위해 removeCookie 사용
+  const [, , removeCookie] = useCookies();
   const navigate = useNavigate();
 
+  // 로그아웃
   const handleLogout = () => {
-    // 쿠키 삭제
     removeCookie("id", { path: "/" });
     removeCookie("token", { path: "/" });
     removeCookie("userId", { path: "/" });
     removeCookie("nickname", { path: "/" });
     removeCookie("imgPath", { path: "/" });
-
-    // 로그인 페이지로 리다이렉트
-    navigate("/signin"); // 로그인 페이지로 리다이렉트
+    navigate("/signin");
   };
 
   return (
     <HeaderBox nobg={"true"}>
       <HeaderContent>
-        <HomeTitle>
+        <Title>
           책담
-        </HomeTitle>
+        </Title>
         <Logout onClick={handleLogout}>
           Logout
         </Logout>

@@ -16,7 +16,6 @@ const Content = styled.div`
   flex-direction: column;
   padding: 10px 20px;
 `;
-
 const InputBox = styled.input`
   width: 400px;
   padding: 17px 10px;
@@ -28,22 +27,19 @@ const InputBox = styled.input`
   border: none;
   outline: none;
 `;
-
 const FileInputWrapper = styled.div`
   position: relative;
   width: 400px;
   margin-bottom: 20px;
 `;
-
 const FileInput = styled.input`
-  display: none; /* 파일 입력을 보이지 않게 함 */
+  display: none;
 `;
-
 const FileButton = styled.button`
   width: 100%;
   padding: 15px 0px;
   border-radius: 12px;
-  background: ${(props) => (props.isFileSelected ? "#F96B5B" : "#ffc7c0")}; /* 파일이 선택되면 색상 변경 */
+  background: ${(props) => (props.isFileSelected ? "#F96B5B" : "#ffc7c0")}; 
   text-align: center;
   font-weight: 800;
   color: #ffffff;
@@ -51,14 +47,12 @@ const FileButton = styled.button`
   outline: none;
   cursor: pointer;
 `;
-
 const ErrorMessage = styled.div`
   color: #828282;
   margin: 10px 0;
   font-size: 16px;
   font-weight: 700;
 `;
-
 const Login = styled.div`
   width: 400px;
   padding: 15px 0px;
@@ -70,7 +64,6 @@ const Login = styled.div`
   outline: none;
   cursor: pointer;
 `;
-
 const Title = styled.div`
   font-size: 40px;
   font-weight: 700;
@@ -81,35 +74,43 @@ const Title = styled.div`
 const SignIn = () => {
   const navigate = useNavigate();
   const [, setCookie] = useCookies();
+
+  // 로그인, 회원가입 state
   const [id, setId] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loginStatus, setLoginStatus] = useState(0);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [file, setFile] = useState(null); // 이미지 상태 추가
+  const [file, setFile] = useState(null); 
 
+  // 로그인 단계
+  const [loginStatus, setLoginStatus] = useState(0);
+
+  // 오류 메세지
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  // 파일 선택
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]); // 파일이 선택되면 상태에 저장
+    setFile(e.target.files[0]); 
   };
 
+  // 다음 버튼 클릭
   const handleContinueClick = () => {
     if (!id) {
       setErrorMessage("아이디를 입력해주세요.");
       return;
     }
     setErrorMessage("");
-
     if (loginStatus === 0) {
-      checkId();
+      checkIdExists();
     } else if (loginStatus === 1) {
       handleSignIn();
     } else if (loginStatus === 2) {
       handleSignUp();
     }
   };
-
-  const checkId = async () => {
+  
+  // 계정 존재 확인
+  const checkIdExists = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/check/${id}`);
       setLoginStatus(response.data.data.status);
@@ -118,6 +119,7 @@ const SignIn = () => {
     }
   };
 
+  // 로그인
   const handleSignIn = async () => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACK_URL}/login`, {
@@ -140,12 +142,12 @@ const SignIn = () => {
     }
   };
 
+  // 회원 가입
   const handleSignUp = async () => {
-    if (!password || !nickname || !file) {
+    if (!password || !nickname) {
       setErrorMessage("모든 항목을 작성해주세요.");
       return;
     }
-
     if (password !== confirmPassword) {
       setErrorMessage("비밀번호가 일치하지 않습니다.");
       return;
@@ -157,13 +159,13 @@ const SignIn = () => {
       nickname,
       password
     })],
-    {
-      type : "application/json"
-    }));
+      {
+        type: "application/json"
+      }));
     formData.append('pic', file);
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACK_URL}/register`,  
+      const response = await axios.post(`${process.env.REACT_APP_BACK_URL}/register`,
         formData,
         {
           headers: {
@@ -183,11 +185,12 @@ const SignIn = () => {
       } else if (response.data.code === 409) {
         setErrorMessage("이미 해당 아이디를 사용하는 계정이 존재합니다.");
       }
-    } catch (error)      {
+    } catch (error) {
       console.error("Sign up error:", error);
     }
   };
 
+  // id 변경시 처음으로 돌아감
   useEffect(() => {
     setLoginStatus(0);
   }, [id]);
@@ -196,54 +199,52 @@ const SignIn = () => {
     <Content>
       <Title>책담</Title>
       {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
-      <InputBox 
-        placeholder="아이디" 
-        value={id} 
-        onChange={(e) => setId(e.target.value)} 
+      <InputBox
+        placeholder="아이디"
+        value={id}
+        onChange={(e) => setId(e.target.value)}
       />
       {loginStatus === 2 && (
         <>
-          <InputBox 
-            placeholder="닉네임" 
-            value={nickname} 
-            onChange={(e) => setNickname(e.target.value)} 
+          <InputBox
+            placeholder="닉네임"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
           />
-          <InputBox 
-            placeholder="비밀번호" 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
+          <InputBox
+            placeholder="비밀번호"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
-          <InputBox 
-            placeholder="비밀번호 확인" 
-            type="password" 
-            value={confirmPassword} 
-            onChange={(e) => setConfirmPassword(e.target.value)} 
+          <InputBox
+            placeholder="비밀번호 확인"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
           <FileInputWrapper>
-            {/* FileButton에서 파일 선택을 트리거 */}
             <FileButton
-              type="button" // button 타입으로 설정
-              onClick={() => document.getElementById("file-input").click()} // 파일 선택을 클릭으로 트리거
+              type="button"
+              onClick={() => document.getElementById("file-input").click()} 
               isFileSelected={file !== null}
             >
               {file ? "파일이 선택되었습니다" : "프로필 사진 선택"}
             </FileButton>
-            {/* 실제 파일 입력 창은 보이지 않게 설정 */}
-            <FileInput 
-              id="file-input" 
-              type="file" 
-              onChange={handleFileChange} 
+            <FileInput
+              id="file-input"
+              type="file"
+              onChange={handleFileChange}
             />
           </FileInputWrapper>
         </>
       )}
       {loginStatus === 1 && (
-        <InputBox 
-          placeholder="Password" 
-          type="password" 
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
+        <InputBox
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
       )}
       <Login onClick={handleContinueClick}>

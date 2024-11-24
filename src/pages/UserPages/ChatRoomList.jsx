@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
-import { useCookies } from "react-cookie"; // 쿠키에서 토큰을 가져오기 위해 사용
-import { useNavigate } from "react-router-dom"; 
+import { useCookies } from "react-cookie"; 
+import { useNavigate } from "react-router-dom";
 
 const ChatBox = styled.div`
   width: 20%;
@@ -13,7 +13,6 @@ const ChatBox = styled.div`
   box-sizing: border-box;
   overflow: scroll;
 `;
-
 const SearchBox = styled.input`
   background: #f5f5f5;
   border-radius: 12px;
@@ -31,9 +30,7 @@ const SearchBox = styled.input`
     font-size: 14px;
   }
 `;
-
 const BookList = styled.ul``;
-
 const ChatRoom = styled.li`
   padding: 10px 7px;
   background: ${({ isOn }) => (isOn ? "#f5f5f5" : "#ffffff")};
@@ -43,35 +40,30 @@ const ChatRoom = styled.li`
   cursor: pointer;
   
   &:hover {
-    background: #f5f5f5; /* 마우스를 올렸을 때 배경색 변경 */
+    background: #f5f5f5; 
   }
 `;
-
 const BookName = styled.div`
   font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;        /* 텍스트를 한 줄로 표시 */
-  overflow: hidden;           /* 넘치는 텍스트를 숨김 */
-  text-overflow: ellipsis;    /* 넘친 텍스트에 '...'을 표시 */
+  white-space: nowrap;       
+  overflow: hidden;          
+  text-overflow: ellipsis;    
 `;
-
 const Title = styled.div`
   font-size: 14px;
   font-weight: 700;
   color: #bcbcbc;
   margin-bottom: 12px;
 `;
-
 const FixedBox = styled.div`
   margin-top: 10px;
 `;
-
 const Nodata = styled.div`
   font-size: 14px;
   font-weight: 500;
   color: #bcbcbc;
 `;
-
 const PeopleCount = styled.div`
   font-size: 14px;
   font-weight: 500;
@@ -82,7 +74,6 @@ const TopInfo = styled.div`
   display: flex;
   align-items: center;
 `;
-
 const SubInfo = styled.div`
   font-size: 12px;
   font-weight: 500;
@@ -92,16 +83,24 @@ const SubInfo = styled.div`
   text-overflow: ellipsis;   
 `;
 
+const ChatRoomList = ({ roomId, setRoomId }) => {
 
-const ChatRoomList = ({roomId, setRoomId}) => {
-  const [searchKeyword, setSearchKeyword] = useState(""); // 검색어 상태
-  const [chatRoomList, setChatRoomList] = useState([]); // 채팅방 리스트 상태
-  const [bookList, setBookList] = useState([]); // 책 리스트 상태
-  const [debounceTimer, setDebounceTimer] = useState(null); // 디바운스 타이머 상태
-  const [cookies] = useCookies(); // 쿠키에서 토큰을 가져오기 위해 사용
+  const [cookies] = useCookies(); 
   const navigate = useNavigate();
 
-  // 1. 채팅방 목록을 가져오는 함수
+  // 도서 검색어
+  const [searchKeyword, setSearchKeyword] = useState(""); 
+
+  // 채팅방 리스트
+  const [chatRoomList, setChatRoomList] = useState([]); 
+
+  // 도서 검색 리스트
+  const [bookList, setBookList] = useState([]); 
+
+  // 디바운스 타이머 상태
+  const [debounceTimer, setDebounceTimer] = useState(null); 
+
+  // 채팅방 목록 get
   const fetchChatRooms = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/chat/user`, {
@@ -109,30 +108,29 @@ const ChatRoomList = ({roomId, setRoomId}) => {
           Authorization: `Bearer ${cookies.token}`,
         },
       });
-      console.log(response.data.data);
-      setChatRoomList(response.data.data); // API 응답에서 채팅방 데이터 추출
+      setChatRoomList(response.data.data);
     } catch (error) {
       console.error("채팅방 데이터 요청 실패", error);
-      navigate("/signin"); // 오류 발생 시 로그인 페이지로 리다이렉트
+      navigate("/signin");
     }
   };
 
-  // 2. 검색어로 책 목록을 가져오는 함수
+  // 책 목록 get
   const fetchBooks = async (keyword) => {
-    if (!keyword) return; // 검색어가 없으면 요청을 하지 않음
+    if (!keyword) return;
 
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_BACK_URL}/books/search?keyword=${keyword}`
       );
-      setBookList(response.data.data); // API 응답에서 books 데이터 추출
+      setBookList(response.data.data);
     } catch (error) {
       console.error("API 요청 실패", error);
-      navigate("/signin"); // 오류 발생 시 로그인 페이지로 리다이렉트
+      navigate("/signin"); 
     }
   };
 
-  // 3. 책 클릭 시 참여 요청 및 검색어 초기화
+  // 채팅방 참여
   const handleBookClick = async (isbn) => {
     try {
       const response = await axios.post(
@@ -145,31 +143,29 @@ const ChatRoomList = ({roomId, setRoomId}) => {
         }
       );
       console.log("참여 요청 성공:", response.data);
-
-      // 참여 후 검색어 초기화하고 채팅방 목록 새로 불러오기
-      setSearchKeyword(""); // 검색어 초기화
-      fetchChatRooms(); // 채팅방 목록 새로 불러오기
+      setSearchKeyword(""); 
+      fetchChatRooms();
     } catch (error) {
       console.error("참여 요청 실패:", error);
     }
   };
 
-  // 디바운스 기능 - 검색어가 변경될 때마다 0.5초 뒤에 책 검색
+  // 검색어가 변경될 때마다 0.5초 뒤에 책 검색
   useEffect(() => {
     if (debounceTimer) clearTimeout(debounceTimer); // 이전 타이머 취소
 
     const timer = setTimeout(() => {
-      fetchBooks(searchKeyword); // 0.5초 후에 API 호출
+      fetchBooks(searchKeyword);
     }, 500);
 
-    setDebounceTimer(timer); // 새로 설정된 타이머를 상태에 저장
+    setDebounceTimer(timer);
 
-    return () => clearTimeout(timer); // 컴포넌트가 unmount 될 때 타이머 정리
-  }, [searchKeyword]); // searchKeyword가 변경될 때마다 실행
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
 
-  // 컴포넌트가 마운트될 때 채팅방 목록을 불러오기
+  // 채팅방 목록 불러오기
   useEffect(() => {
-    fetchChatRooms(); // 채팅방 목록 불러오기
+    fetchChatRooms();
   }, []);
 
   return (
@@ -178,7 +174,7 @@ const ChatRoomList = ({roomId, setRoomId}) => {
         <SearchBox
           placeholder={"책 검색"}
           value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)} // 검색어 입력 처리
+          onChange={(e) => setSearchKeyword(e.target.value)}
         />
         <Title>도서</Title>
       </FixedBox>
@@ -204,8 +200,8 @@ const ChatRoomList = ({roomId, setRoomId}) => {
             chatRoomList.map((chatRoom, index) => (
               <ChatRoom isOn={chatRoom.roomId === roomId} key={index} onClick={() => setRoomId(chatRoom.roomId)}>
                 <TopInfo>
-                <BookName>{chatRoom.bookName}</BookName>
-                <PeopleCount>{chatRoom.peopleCount}</PeopleCount>
+                  <BookName>{chatRoom.bookName}</BookName>
+                  <PeopleCount>{chatRoom.peopleCount}</PeopleCount>
                 </TopInfo>
                 <SubInfo>{chatRoom.lastMessage}</SubInfo>
               </ChatRoom>

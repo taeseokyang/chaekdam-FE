@@ -3,7 +3,6 @@ import styled from "styled-components";
 import Home from "./pages/UserPages/Home";
 import SignIn from "./pages/UserPages/SignIn";
 
-
 const MainLayout = styled.div`
 `;
 
@@ -12,10 +11,8 @@ function App() {
     <MainLayout>
       <BrowserRouter>
         <Routes>
-          {/* 유저 */}
           <Route path="/" Component={Home} />
           <Route path="/signin" Component={SignIn} />
-
         </Routes>
       </BrowserRouter>
     </MainLayout>
