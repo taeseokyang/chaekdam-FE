@@ -3,16 +3,11 @@ import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import styled from "styled-components";
 import axios from "axios";
-import Header from "../../components/layout/Header";
-import Loading from "../../components/layout/Loading";
-
-
 
 const ChatBox = styled.div`
-  position: absolute;
-  width: 100%;
-  max-width: 700px;
-  background: #ffffff;
+  position: relative;
+  width: 80%;
+  height: 90vh;
 `;
 
 const DateChange = styled.div`
@@ -26,135 +21,15 @@ const DateChange = styled.div`
   color:#aaaaaa;
 `;
 
-const PostImg = styled.div`
-  margin: 10px 10px;
-  width:40px;
-  height: 40px;
-  float:left;
-  & img{
-    border-radius: 10px;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    border: 1px solid #eeeeee;
-  }
-`;
-
-// 게시물 제목
-const PostTitle = styled.div`
-  font-size: 15px;
-  line-height: 23px;
-  color:#222222;
-  margin-top: 8px;
-  font-family: 'Noto Sans KR';
-
-  /* width: 50px; */
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-`;
-
-// 게시물 정보 박스
-const PostInfo = styled.div`
-  z-index: 1;
-  position: fixed;
-  top: 49px;
-  left: 0;
-  right: 0;
-  height: 60px;
-  /* margin: 0px 10px; */
-  background-color: #fafafa;
-  /* box-shadow: 0px 2px 15px 0px rgba(157, 157, 157, 0.2); */
-  @media screen and (min-width: 701px) {
-    margin: 0 auto;
-    width: 700px;
-    border-radius: 13px;
-  }
-`;
-
-// 게시물 기한
-const PostDuration = styled.div`
-`;
-
-// 기한 글자
-const DurationText = styled.span`
-  color:#aaaaaa;
-  font-size: 13px;
-`;
-
-// 기한 숫자
-const DurationDate = styled.span`
-  background: #f5f8ff;
-  border-radius: 20px;
-  border: 1px solid #6093FF;
-  font-size: 11px;
-  padding: 1px 8px;
-  font-weight: 700;
-  color:#6093FF;
-`;
-
-// 메세지들
-const MessagesBox = styled.ul`
-  background: #ffffff;
-  width: 100%;
-`;
-
-const TestBox = styled.div`
-`;
-
-// 메세지 라인 박스
-const MessageBlock = styled.div`
-  text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')};
-  width: 100%;
-  display: flex;
-  justify-content: ${({ isMe }) => (isMe ? 'flex-end' : 'flex-start')};
-`;
-
-// 메세지 전송 시각
-const MessageTime = styled.span`
-  font-size: 12px;
-  color: #aaaaaa;
-  order:  ${({ isMe }) => (isMe ? 1 : 2)};
-  position: relative;
-  top: 12px;
-  right: ${({ isMe }) => (isMe ? '-5px' : '5px')};
-`;
-
-// 메세지
-const Message = styled.li`
-  font-family: 'Noto Sans KR';
-  order:  ${({ isMe }) => (isMe ? 2 : 1)};
-  word-break: break-all;
-  margin: 7px 10px;
-  display:inline-block ;
-  vertical-align: left;
-  text-align: left;
-  max-width: 250px;
-  background: ${({ isMe }) => (isMe ? '#6093FF' : 'none')};
-  color: ${({ isMe }) => (isMe ? '#ffffff' : '000000')};
-  padding: 12px;
-  line-height: 20px;
-  list-style: none;
-  border:${({ isMe }) => (isMe ? 'none' : '1px solid #dddddd')};
-  border-radius: 20px;
-  font-weight: 400;
-`;
-
 // 메세지 입력 박스
 const MessageInputBox = styled.div`
   display: flex;
   justify-content: space-between;
   position: fixed;
   bottom: 0;
-  left: 0; 
-  right: 0;
+  width: 80%;
   height: 75px;
   background: #ffffff;
-  @media screen and (min-width: 701px) {
-    margin: 0px auto;
-    max-width: 701px;
-  }
 `;
 
 // 메세지 입력
@@ -175,12 +50,6 @@ const InputBox = styled.input`
   }
 `;
 
-// 헤더에 안가려지게 하는 더미 박스
-const EmptyBox = styled.div`
-  height: 60px;
-  margin-bottom:20px;
-`;
-
 // 전송 버튼
 const SendBtn = styled.button`
   margin: 10px 10px 0px 0px;
@@ -189,191 +58,89 @@ const SendBtn = styled.button`
   border: none;
   width: 15%;
   border-radius: 13px;
-  color: ${({ isNoText }) => (isNoText ? '#aaaaaa' : '#ffffff')};
+  color: #ffffff;
   font-weight: 600;
-  & img{
-    border-radius: 10px;
-    opacity: ${({ isNoText }) => (isNoText ? '30%' : '100%')};
-    background: ${({ isNoText }) => (isNoText ? 'none' : '#EEF6FF')};
-    width: 35px;
-  }
+  background: #F96B5B;
 `;
 
 // 최하단 메세지 앵커
 const BottomPoint = styled.div`
-  margin-bottom: 70px;
+`;
+
+
+// 메세지들
+const MessagesBox = styled.ul`
   background: #ffffff;
-`;
-
-// 까꿍 이스터에그 박스
-const HiddenTextBox = styled.div`
-  position: absolute;
   width: 100%;
-  left: 0;
+  padding: 10px;
+  box-sizing: border-box;
 `;
 
-// 까꿍 이스터에그 텍스트
-const HiddenText = styled.div`
-  text-align: center;
-  margin: 10px;
-  font-size: 30px;
-  font-weight: 800;
-  color : #ccd3d8;
-`;
-
-const PostText = styled.div`
-    margin-right: 20px;
-`;
-const DoneBtn = styled.button`
-  /* position: fixed; */
-  margin-top: -95px;
-  margin-right: 10px;
-  border: none;
-  /* margin-top: 12px; */
-  float: right;
-  padding: 7px 10px;
-  background: #e2ebff;
-  color:#6093FF;
-  font-weight: 600;
-  border-radius: 7px;
-  font-size: 13px;
-`;
-
-const ModalContainer = styled.div`
-  z-index: 1000;
-  position: fixed;
-  left: 0;
-  top: 0;
+// 메세지 라인 박스
+const MessageBlock = styled.div`
+  text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')};
   width: 100%;
-  height: 100%;
-  background: #00000077;
-
   display: flex;
-  justify-content: center;
-  align-items: center;
+  /* flex-direction: column; */
+  justify-content: ${({ isMe }) => (isMe ? 'flex-end' : 'flex-start')};
 `;
 
-const ModalBox = styled.div`
-  margin: 0 auto;
-  width: 80%;
-  height: 250px;
-  max-width: 400px;
-  border-radius: 30px;
-  background: #ffffff;
+// 메세지 전송 시각
+const MessageTime = styled.span`
+  font-size: 12px;
+  color: #aaaaaa;
+  order:  ${({ isMe }) => (isMe ? 1 : 2)};
   position: relative;
+  top: 5px;
+  right: ${({ isMe }) => (isMe ? '5px' : '-5px')};
 `;
 
-const ModalBox2 = styled.div`
-  margin: 0 auto;
-  width: 80%;
-  height: 400px;
-  max-width: 400px;
-  border-radius: 30px;
-  background: #ffffff;
+// 메세지
+const Message = styled.li`
+  font-family: 'Noto Sans KR';
+  order:  ${({ isMe }) => (isMe ? 2 : 1)};
+  word-break: break-all;
+  margin: 3px 0px;
+  display:inline-block ;
+  vertical-align: left;
+  text-align: left;
+  max-width: 250px;
+  background: ${({ isMe }) => (isMe ? '#F96B5B' : 'none')};
+  color: ${({ isMe }) => (isMe ? '#ffffff' : '000000')};
+  padding: 10px 15px;
+  line-height: 20px;
+  list-style: none;
+  border:${({ isMe }) => (isMe ? 'none' : '1px solid #eeeeee')};
   
-  position: relative;
-  text-align: center;
-
+  border-radius: 20px;
+  border-top-right-radius: ${({ isMe }) => (isMe ? '10px' : 'none')};
+  border-top-left-radius: ${({ isMe }) => (isMe ? 'none' : '10px')};
+  font-weight: 400;
 `;
 
-const ModalBtnBox = styled.div`
-  position: absolute;
-  width: 100%;
-  bottom: 22px;
+const UserInfoBox = styled.div`
+`;
+const UserImg = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 1px solid #eeeeee;
+  border-radius: 100px;
+  margin-right: 10px;
+`;
+const UserName = styled.div`
+  font-weight: 500;
+  color: #333333;
+`;
+
+const MessageBox = styled.div`
+  text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')};
   display: flex;
-  justify-content: space-evenly;
+  flex-direction: column;
 `;
 
-const ModalBtn = styled.button`
-  border: none;
-  width: 40%;
-  background: ${({ isLeft }) => (isLeft ? '#f5f5f5' : '#6093FF')};
-  padding: 15px;
-  text-align: center;
-  border-radius: 15px;
-
-  font-size: 15px;
-  color:${({ isLeft }) => (isLeft ? '#aaaaaa' : '#FFFFFF')};
+const MessageContent = styled.div`
+  display: flex;
 `;
-
-
-const ModalText = styled.div`
-  margin-top: 60px;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 30px;
-  & span{
-    display: block;
-    margin-top: 20px;
-    font-size: 15px;
-    font-weight: 400;
-  }
-`;
-
-const ModalText2 = styled.div`
-  margin-top: 40px;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 30px;
-  & span{
-    display: block;
-    margin-top: 20px;
-    font-size: 15px;
-    font-weight: 400;
-  }
-`;
-
-
-
-const Nickname = styled.div`
-  display: inline-block;
-  background: #e4f2ff;
-  padding: 3px 10px;
-  border-radius: 15px;
-`;
-
-
-const TextareaBox = styled.textarea`
-    width: 70%;
-    height: 50px;
-    resize: none;
-
-    margin: 10px auto;
-    background: #f5f5f5;
-    border:none;
-    /* border: 1px solid #dddddd; */
-
-    border-radius: 10px;
-    color:#333333;
-    font-size: 15px; 
-    outline: none;
-    padding: 20px;
-    &::placeholder {
-        color: #aaaaaa; 
-        font-size: 15px;
-    }
-`;
-
-const Stars = styled.div`
-margin: 20px 20px;
-    display: flex;
-    justify-content: space-evenly;
-`;
-
-const Star = styled.button`
-    width: 60px;
-    height: 60px;
-    & img{
-      width: 60px;
-      height: 60px;
-      opacity: ${({ isSeleted }) => (isSeleted ? null : '30%')};
-    }
-    border: none;
-    background: none;
-`;
-
 
 
 const Chat = () => {
@@ -393,7 +160,7 @@ const Chat = () => {
 
   // 상태
   const [interlocutorInfo, setInterlocutorInfo] = useState({});
-  const [messageList, setMessageList] = useState([]);
+  const [messageList, setMessageList] = useState([{message:"hello", userId:"1"},{message:"hello", userId:"2"}]);
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [postInfo, setPostInfo] = useState({ needAt: [], returnAt: [] });
@@ -403,336 +170,234 @@ const Chat = () => {
 
   const [isBorrower, setIsBorrower] = useState(false);
   // 최하단 이동용
-  useEffect(() => {
-    messagesEndRef.current.scrollIntoView();
-  },);
+  // useEffect(() => {
+  //   messagesEndRef.current.scrollIntoView();
+  // },);
 
-  useEffect(() => {
-    if (!cookies.token) {
-      navigate("/signin");
-      return;
-    }
-    // 로딩 시작
-    setLoading(true);
-    // 모든 메세지 가져오기
-    const fetchUserInfo = async () => {
-      try {
-        // 토큰 쿠키가 없다면 로그인 페이지로 이동
-        if (!cookies.token) {
-          navigate("/signin");
-          return;
-        }
-        // 메세지 가져오기 api요청
-        const response = await axios.get(process.env.REACT_APP_BACK_URL + "/account?id=" + interlocutorId, {
-          headers: {
-            Authorization: `Bearer ${cookies.token}`,
-          },
-        });
-        // 메세지 상태 저장
-        setInterlocutorInfo(response.data.data);
+//   useEffect(() => {
+//     if (!cookies.token) {
+//       navigate("/signin");
+//       return;
+//     }
+//     // 로딩 시작
+//     setLoading(true);
+//     // 모든 메세지 가져오기
+//     const fetchUserInfo = async () => {
+//       try {
+//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
+//         if (!cookies.token) {
+//           navigate("/signin");
+//           return;
+//         }
+//         // 메세지 가져오기 api요청
+//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/account?id=" + interlocutorId, {
+//           headers: {
+//             Authorization: `Bearer ${cookies.token}`,
+//           },
+//         });
+//         // 메세지 상태 저장
+//         setInterlocutorInfo(response.data.data);
         
 
-        if (response.data.code != 200) {
-          navigate("/signin");
-        }
-      } catch (error) {
-        console.error("오류 발생:", error);
-      }
-    };
+//         if (response.data.code != 200) {
+//           navigate("/signin");
+//         }
+//       } catch (error) {
+//         console.error("오류 발생:", error);
+//       }
+//     };
 
-    const fetchMessages = async () => {
-      try {
-        // 토큰 쿠키가 없다면 로그인 페이지로 이동
-        if (!cookies.token) {
-          navigate("/signin");
-          return;
-        }
-        // 메세지 가져오기 api요청
-        const response = await axios.get(process.env.REACT_APP_BACK_URL + "/message/" + id, {
-          headers: {
-            Authorization: `Bearer ${cookies.token}`,
-          },
-        });
-        // 메세지 상태 저장
-        setMessageList(response.data.data);
-      } catch (error) {
-        console.error("오류 발생:", error);
-      }
+//     const fetchMessages = async () => {
+//       try {
+//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
+//         if (!cookies.token) {
+//           navigate("/signin");
+//           return;
+//         }
+//         // 메세지 가져오기 api요청
+//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/message/" + id, {
+//           headers: {
+//             Authorization: `Bearer ${cookies.token}`,
+//           },
+//         });
+//         // 메세지 상태 저장
+//         setMessageList(response.data.data);
+//       } catch (error) {
+//         console.error("오류 발생:", error);
+//       }
 
-    };
+//     };
 
-    // 게시물 정보 가져오기
-    const fetchPostInfo = async () => {
-      try {
-        // 토큰 쿠키가 없다면 로그인 페이지로 이동
-        if (!cookies.token) {
-          navigate("/signin");
-          return;
-        }
+//     // 게시물 정보 가져오기
+//     const fetchPostInfo = async () => {
+//       try {
+//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
+//         if (!cookies.token) {
+//           navigate("/signin");
+//           return;
+//         }
 
-        // 게시물 정보 가져오기 api 요청
-        const response = await axios.get(process.env.REACT_APP_BACK_URL + "/post/" + postId, {
-          headers: {
-            Authorization: `Bearer ${cookies.token}`,
-          },
-        });
+//         // 게시물 정보 가져오기 api 요청
+//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/post/" + postId, {
+//           headers: {
+//             Authorization: `Bearer ${cookies.token}`,
+//           },
+//         });
 
-        setPostInfo(response.data.data);
-      } catch (error) {
-        // 없는 게시물 이라면
-        if (error.response && error.response.status === 404) {
-          console.error("존재하지 않는 게시물", error);
-          navigate("/");
-        } else {
-          console.error("오류 발생:", error);
-        }
-      }
-    };
-    fetchMessages();
-    fetchPostInfo();
-    fetchUserInfo();
+//         setPostInfo(response.data.data);
+//       } catch (error) {
+//         // 없는 게시물 이라면
+//         if (error.response && error.response.status === 404) {
+//           console.error("존재하지 않는 게시물", error);
+//           navigate("/");
+//         } else {
+//           console.error("오류 발생:", error);
+//         }
+//       }
+//     };
+//     fetchMessages();
+//     fetchPostInfo();
+//     fetchUserInfo();
 
-    let prevVisualViewport = 0
-    function handleVisualViewportResize() {  
-      const currentVisualViewport = window.visualViewport.height
+//     let prevVisualViewport = 0
+//     function handleVisualViewportResize() {  
+//       const currentVisualViewport = window.visualViewport.height
     
-      if (
-        prevVisualViewport - 30 > currentVisualViewport &&
-        prevVisualViewport - 100 < currentVisualViewport
-      ) {
-        const scrollHeight = window.document.scrollingElement.scrollHeight
-        const scrollTop = scrollHeight - window.visualViewport.height
+//       if (
+//         prevVisualViewport - 30 > currentVisualViewport &&
+//         prevVisualViewport - 100 < currentVisualViewport
+//       ) {
+//         const scrollHeight = window.document.scrollingElement.scrollHeight
+//         const scrollTop = scrollHeight - window.visualViewport.height
     
-        window.scrollTo(0, scrollTop) // 입력창이 키보드에 가려지지 않도록 조절
-      }
+//         window.scrollTo(0, scrollTop) // 입력창이 키보드에 가려지지 않도록 조절
+//       }
     
-      prevVisualViewport = window.visualViewport.height
-    }
+//       prevVisualViewport = window.visualViewport.height
+//     }
     
-    window.visualViewport.onresize = handleVisualViewportResize  
-    // 0.3초 동안 로딩후 로딩 종료
-    setTimeout(() => {
-      setLoading(false);
-    }, 300)
+//     window.visualViewport.onresize = handleVisualViewportResize  
+//     // 0.3초 동안 로딩후 로딩 종료
+//     setTimeout(() => {
+//       setLoading(false);
+//     }, 300)
 
-  }, [cookies.token, id, navigate]);
-
-  // function handleKeyDown(event) {
-  //   event.preventDefault(); // 기본 동작 방지
-  //   setInputMessage(event.keyCode);
-  // }
-
-  // let windowHeight = window.innerHeight;
-  // window.addEventListener('resize', function() {
-  //   const inputElement = document.getElementById('inputbox'); // 입력란의 id를 가정합니다.
-  //   const currentHeight = window.innerHeight;
-  
-  //   // 윈도우의 높이가 줄어들면 키보드가 열린 것으로 판단하고 입력란의 위치를 조정합니다.
-  //   if (currentHeight < windowHeight) {
-  //     const keyboardHeight = windowHeight - currentHeight; // 키보드의 높이 계산
-  //     inputElement.style.bottom = keyboardHeight + 'px'; // 입력란의 위치 조정
-  //   } else {
-  //     inputElement.style.bottom = '0'; // 키보드가 닫혔을 때 입력란의 위치를 초기화
-  //   }
-  
-  //   windowHeight = currentHeight; // 윈도우 높이 업데이트
-  // });
+//   }, [cookies.token, id, navigate]);
 
 
-useEffect(() => {
-  // 컴포넌트가 마운트되면 웹 소켓 연결
-  ws.current = new WebSocket(process.env.REACT_APP_BACK_SOKET_URL + '/ws/chat');
+// useEffect(() => {
+//   // 컴포넌트가 마운트되면 웹 소켓 연결
+//   ws.current = new WebSocket(process.env.REACT_APP_BACK_SOKET_URL + '/ws/chat');
 
-  // 세션 등록
-  ws.current.onopen = () => {
-    const message = {
-      type: 'ENTER',
-      userType: metype === "b" ? "LENDER" : "BORROWER",
-      roomId: id,
-      sender: cookies.userId,
-      message: "",
-    };
-    // JSON 형식으로 문자열 변환 후 웹 소켓으로 전송
-    ws.current.send(JSON.stringify(message));
-  };
+//   // 세션 등록
+//   ws.current.onopen = () => {
+//     const message = {
+//       type: 'ENTER',
+//       userType: metype === "b" ? "LENDER" : "BORROWER",
+//       roomId: id,
+//       sender: cookies.userId,
+//       message: "",
+//     };
+//     // JSON 형식으로 문자열 변환 후 웹 소켓으로 전송
+//     ws.current.send(JSON.stringify(message));
+//   };
 
-  // 메시지를 받으면 실행될 코드
-  ws.current.onmessage = (event) => {
-    const receivedMessage = JSON.parse(event.data);
-    const currentDate = new Date();
+//   // 메시지를 받으면 실행될 코드
+//   ws.current.onmessage = (event) => {
+//     const receivedMessage = JSON.parse(event.data);
+//     const currentDate = new Date();
 
-    // 받은 메세지 메세지 리스트 상태에 넣기위해 딕셔너리화
-    var d= new Date();
-    const newMessage = {
-      chatId: new Date(),
-      sentAt: new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString(),
-      message: receivedMessage.message,
-      userType: receivedMessage.userType,
-    };
-    setMessageList(prevMessageList => [...prevMessageList, newMessage]);
-  };
-  // 컴포넌트가 언마운트될 때 웹 소켓 연결 해제
-  return () => {
-    ws.current.close();
-  };
-}, [cookies.userId, id, metype]);
+//     // 받은 메세지 메세지 리스트 상태에 넣기위해 딕셔너리화
+//     var d= new Date();
+//     const newMessage = {
+//       chatId: new Date(),
+//       sentAt: new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString(),
+//       message: receivedMessage.message,
+//       userType: receivedMessage.userType,
+//     };
+//     setMessageList(prevMessageList => [...prevMessageList, newMessage]);
+//   };
+//   // 컴포넌트가 언마운트될 때 웹 소켓 연결 해제
+//   return () => {
+//     ws.current.close();
+//   };
+// }, [cookies.userId, id, metype]);
 
-// 메세지 보내기
-const sendMessage = () => {
+// // 메세지 보내기
+// const sendMessage = () => {
 
-  // 아무 입력도 안했다면
-  if (inputMessage < 1) {
-    inputMessageRef.current.focus();
-    return;
-  }
-  // 메세지 형식으로 변환후 전송
-  const message = {
-    type: 'TALK',
-    userType: metype === "b" ? "BORROWER" : "LENDER",
-    roomId: id,
-    sender: cookies.userId,
-    message: inputMessage,
-  };
-  ws.current.send(JSON.stringify(message));
-  setInputMessage('');
-  inputMessageRef.current.focus();
-};
+//   // 아무 입력도 안했다면
+//   if (inputMessage < 1) {
+//     inputMessageRef.current.focus();
+//     return;
+//   }
+//   // 메세지 형식으로 변환후 전송
+//   const message = {
+//     type: 'TALK',
+//     userType: metype === "b" ? "BORROWER" : "LENDER",
+//     roomId: id,
+//     sender: cookies.userId,
+//     message: inputMessage,
+//   };
+//   ws.current.send(JSON.stringify(message));
+//   setInputMessage('');
+//   inputMessageRef.current.focus();
+// };
 
-// 엔터 입력하면 전송하도록
-const activeEnter = (event) => {
-  if (event.code === 'Enter') {
-    sendMessage();
-  }
-};
-
-const handleDone = async (e, isWrite) => {
-  e.preventDefault();
+// // 엔터 입력하면 전송하도록
+// const activeEnter = (event) => {
+//   if (event.code === 'Enter') {
+//     sendMessage();
+//   }
+// };
 
 
-  try {
-    if (isWrite) {
-      if (rateData == -1) {
-        window.alert(rateData);
-        return;
-      }
-      if (review.length == 0) {
-        window.alert("후기를 작성해주세요");
-        return;
-      }
-      const postId = postInfo.postId;
-
-      const writerType = isBorrower ? "BORROWER" : "LENDER";
-      const recipientId = interlocutorInfo.id;
-      var rate = "";
-      if (rateData == 0) {
-        rate = "LOVE";
-      } else if (rateData == 1) {
-        rate = "GOOD";
-      } else if (rateData == 2) {
-        rate = "BAD";
-      }
-      const text = review;
-      const response2 = await axios.post(
-        process.env.REACT_APP_BACK_URL + "/review",
-        {
-          postId,
-          writerType,
-          recipientId,
-          rate,
-          text
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${cookies.token}`,
-          },
-        }
-      );
-    }
-    if (isBorrower) {
-      const response = await axios.put(
-
-        process.env.REACT_APP_BACK_URL + "/post/done/" + postInfo.postId + "/" + interlocutorInfo.id + "/" + cookies.id, {
-        headers: {
-          Authorization: `Bearer ${cookies.token}`,
-        },
-      });
-    }
-    window.alert("감사합니다 :D");
-    navigate("/");
-  } catch (error) {
-    console.error("오류 발생:", error);
-  }
-};
 return (
   <ChatBox>
-    <Header headerType={"noChatIcon"} headerText={interlocutorInfo.nickname}></Header>
-
-    {/* 게시물 정보 */}
-    {loading ? null :
-
-      <PostInfo>
-        <Link to={'/posts/' + postInfo.postId}>
-          <PostImg><img src={process.env.REACT_APP_BACK_URL + "/image/" + postInfo.postImgPath}></img></PostImg>
-          <PostText>
-            <PostTitle>{postInfo.title}</PostTitle>
-            <PostDuration>
-              <DurationDate>{postInfo.needAt.slice(5,)}</DurationDate> <DurationText>부터</DurationText> <DurationDate>{postInfo.returnAt.slice(5,)}</DurationDate> <DurationText>까지 대여희망</DurationText>
-            </PostDuration>
-          </PostText>
-        </Link>
-        {!postInfo.isClose && postInfo.userId == cookies.id ? <DoneBtn onClick={() => {
-          setIsBorrower(true);
-          setIsDoneModalOn(true);
-        }}>
-          대여 완료하기
-        </DoneBtn> : null}
-        {postInfo.isClose && !postInfo.lenderWriteReview && postInfo.lenderId == cookies.id ? <DoneBtn onClick={() => {
-          setIsBorrower(false);
-          setIsReviewModalOn(true);
-        }}>
-          후기 작성
-        </DoneBtn> : null}
-      </PostInfo>
-    }
-    <EmptyBox>
-      {loading ? null :
-        <HiddenTextBox>
-          <HiddenText>까꿍</HiddenText>
-        </HiddenTextBox>}
-    </EmptyBox>
-
-    {/* 메세지 */}
-    {/* {loading ? <Loading /> : null} */}
     <MessagesBox>
-      <TestBox></TestBox>
-      {loading ? null : messageList.map((message, index) => {
-        const isMe = (message.userType === "BORROWER" && metype === "b") ||
-          (message.userType === "LENDER" && metype === "l");
+      {messageList.length == 0 ? null : messageList.map((message, index) => {
+        const isMe = (message.userId == 2);
         return (
           <div>
-            {index !== 0 && messageList[index - 1].sentAt.slice(5,10) !== message.sentAt.slice(5,10) ? <DateChange>{ message.sentAt.slice(0,10).split("-").join("/") }</DateChange> : null}
+            {/* {index !== 0 && messageList[index - 1].sentAt.slice(5,10) !== message.sentAt.slice(5,10) ? <DateChange>{ message.sentAt.slice(0,10).split("-").join("/") }</DateChange> : null} */}
             <MessageBlock isMe={isMe}>
-              <MessageTime isMe={isMe}>{message.sentAt.slice(11,16)}</MessageTime>
-              <Message key={message.chatId} isMe={isMe}>
+              {isMe ? null :
+              <UserInfoBox>
+                  <UserImg>
+
+                  </UserImg>
+                  <UserName>
+
+                  </UserName>
+              </UserInfoBox>
+              }
+
+              <MessageBox>
+              {isMe ? null :
+              <UserName>한강</UserName>}
+              <MessageContent>
+              <MessageTime isMe={isMe}>{"12:30"}</MessageTime>
+              <Message key={index} isMe={isMe}>
                 {message.message}
               </Message>
+              </MessageContent>
+             
+              </MessageBox>
+            
             </MessageBlock>
           </div>
         );
 
       })}
-      {/* 최하단 포인트 */}
-      <BottomPoint ref={messagesEndRef}>
-      </BottomPoint>
+      <BottomPoint ref={messagesEndRef}></BottomPoint>
     </MessagesBox>
 
-    {/* 메세지 입력 박스 */}
     <MessageInputBox>
       <InputBox placeholder={postInfo.isClose ? "완료된 요청입니다" : "메세지 보내기"}
         value={inputMessage}
         id="inputbox"
         onChange={(e) => {
-          setInputMessage(e.target.value);
+          // setInputMessage(e.target.value);
         }}
         autocomplete="off"
         onKeyPress={(e) => { activeEnter(e) }}
@@ -740,87 +405,10 @@ return (
         disabled={postInfo.isClose}
         ref={inputMessageRef}
       ></InputBox>
-      <SendBtn onClick={sendMessage} isNoText={inputMessage < 1}>
-        <img src="/image/paperplane.svg" alt="" />
+      <SendBtn isNoText={inputMessage < 1}>
+        SEND
       </SendBtn>
     </MessageInputBox>
-
-    {isDoneModalOn ?
-      <ModalContainer>
-        <ModalBox>
-          <ModalText>
-            <Nickname>{interlocutorInfo.nickname}</Nickname> 님과 <br></br>대여를 완료하였나요?<br></br>
-          </ModalText>
-          <ModalBtnBox>
-            <ModalBtn onClick={() => {
-              setIsDoneModalOn(false);
-            }} isLeft={true}>
-              아니요
-            </ModalBtn>
-            <ModalBtn onClick={() => {
-              setIsDoneModalOn(false);
-              setIsReviewModalOn(true);
-            }} isMine={""}>
-              네
-            </ModalBtn>
-          </ModalBtnBox>
-        </ModalBox>
-      </ModalContainer>
-      : null}
-
-    {isReviewModalOn ?
-      <ModalContainer>
-        <ModalBox2>
-          <ModalText2>
-            <Nickname>{interlocutorInfo.nickname}</Nickname> 님과의 <br></br> 대여는 어땠나요?<br></br>
-          </ModalText2>
-          <Stars>
-
-            <Star isSeleted={rateData == 0} onClick={() => {
-              setRateData(0);
-            }}>
-              <img src={"/image/smilingface.svg"} alt="" />
-            </Star>
-            <Star isSeleted={rateData == 1} onClick={() => {
-              setRateData(1);
-            }}>
-              <img src={"/image/face.svg"} alt="" />
-            </Star>
-            <Star isSeleted={rateData == 2} onClick={() => {
-              setRateData(2);
-            }}>
-              <img src={"/image/upsetface.svg"} alt="" />
-            </Star>
-          </Stars>
-
-          <TextareaBox
-            type="text"
-            // ref={passwordRef}
-            name="content"
-            placeholder="후기를 작성해주세요!"
-            onChange={(e) => {
-              setReview(e.target.value);
-            }}
-          />
-
-          <ModalBtnBox>
-            {isBorrower ? <ModalBtn onClick={(e) => handleDone(e, false)} isLeft={true}>
-              안할래요
-            </ModalBtn> :
-              <ModalBtn onClick={() => {
-                setIsReviewModalOn(false);
-              }} isLeft={true}>
-                취소 하기
-              </ModalBtn>
-            }
-
-            <ModalBtn onClick={(e) => handleDone(e, true)} isMine={""}>
-              보내기
-            </ModalBtn>
-          </ModalBtnBox>
-        </ModalBox2>
-      </ModalContainer>
-      : null}
   </ChatBox>
 );
 };
