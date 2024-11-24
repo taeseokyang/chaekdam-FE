@@ -1,211 +1,255 @@
-import React, { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useCookies } from "react-cookie";
-import styled from "styled-components";
+import { useState, useEffect } from 'react';
 import axios from "axios";
+import { useCookies } from "react-cookie";
 import moment from "moment";
-import Footer from "../../components/layout/Footer";
+import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
-const LoginBox = styled.div`
-    margin: 20px auto;
-    padding: 70px 0px;
-    width: 90%;
-    background : none;
-    border-radius: 20px;
-`;
-
-const Title = styled.div`
-    text-align: center;
-    height: 45px;
-    line-height: 45px;
-    margin-bottom: 150px;
-    font-size: 60px;
-    font-weight: 850;
-    
-    & a{
-      font-family: 'Noto Sans KR'; 
-      color : #379DFF;
-    }
-`;
-
-const SubTitle = styled.div`
-    text-align: center;
-    font-size: 18px;
-    font-weight: 600;
-    color : #adb5c2;
-`;
-
-const ForgotPassword = styled.span`
-    margin-top: -15px;
-    display: block;
-    text-align: center;
-    color : #379DFF;
-`;
-
-const GoToSignUp = styled.span`
-    margin-top: 10px;
-    display: block;
-    text-align: center;
-    color : #aaaaaa;
+const Content = styled.div`
+  display: flex;
+  gap: 10px;
+  overflow: hidden;
+  align-items: center;
+  max-width: 1200px;
+  min-height: 500px;
+  margin: 0px auto;
+  flex-direction: column;
+  padding: 10px 20px;
 `;
 
 const InputBox = styled.input`
-    display: block;
-    margin: 10px auto;
-    height: 40px;
-    background: #ffffff;
-    border: 1px solid #dddddd;
-    border-radius: 10px;
-    color:#333333;
-    font-size: 18px; 
-    outline: none;
-    padding: 0px 3%;
-    width: 60%;
-    &::placeholder {
-        color: #aaaaaa; 
-        font-size: 18px;
-    }
-    &:focus {
-      border-color: #379DFF;
-    }
+  width: 400px;
+  padding: 17px 10px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: #f5f5f5;
+  font-weight: 700;
+  color: #000000;
+  border: none;
+  outline: none;
 `;
 
-const SubmitBtn = styled.button`
-    display: block;
-    margin: 30px auto;
-    height: 40px;
-    background: #efefef;
-    border: none;
-    border-radius: 10px;
-    background: #379DFF;
-    font-weight: bold;
-    color:#ffffff;
-    font-size: 18px; 
-    outline: none;
-    width: 66%;
-    &::placeholder {
-        color: #aaaaaa; 
-        font-size: 18px;
-    }
+const FileInputWrapper = styled.div`
+  position: relative;
+  width: 400px;
+  margin-bottom: 20px;
+`;
+
+const FileInput = styled.input`
+  display: none; /* 파일 입력을 보이지 않게 함 */
+`;
+
+const FileButton = styled.button`
+  width: 100%;
+  padding: 15px 0px;
+  border-radius: 12px;
+  background: ${(props) => (props.isFileSelected ? "#F96B5B" : "#ffc7c0")}; /* 파일이 선택되면 색상 변경 */
+  text-align: center;
+  font-weight: 800;
+  color: #ffffff;
+  border: none;
+  outline: none;
+  cursor: pointer;
+`;
+
+const ErrorMessage = styled.div`
+  color: #828282;
+  margin: 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+`;
+
+const Login = styled.div`
+  width: 400px;
+  padding: 15px 0px;
+  border-radius: 12px;
+  background: #F96B5B;
+  text-align: center;
+  font-weight: 800;
+  color: #ffffff;
+  outline: none;
+  cursor: pointer;
+`;
+
+const Title = styled.div`
+  font-size: 40px;
+  font-weight: 700;
+  color: #F96B5B;
+  margin: 100px 0px 50px 0px;
 `;
 
 const SignIn = () => {
-  const navigate = useNavigate(); 
-  const [, setCookie] = useCookies(); 
-  const useridRef = useRef();
-  const passwordRef = useRef();
-  const [userid, setUserid] = useState("");
-  const [password, setPassword] = useState("");
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const navigate = useNavigate();
+  const [, setCookie] = useCookies();
+  const [id, setId] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loginStatus, setLoginStatus] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [file, setFile] = useState(null); // 이미지 상태 추가
 
-    // 입력을 아에 안했는지 확인
-    if (userid.length < 1) {
-      window.alert("아이디를 입력해주세요.");
-      useridRef.current.focus();
-      setUserid('');
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]); // 파일이 선택되면 상태에 저장
+  };
+
+  const handleContinueClick = () => {
+    if (!id) {
+      setErrorMessage("아이디를 입력해주세요.");
       return;
     }
-    if (password.length < 1) {
-      window.alert("패스워드를 입력해주세요.");
-      passwordRef.current.focus();
-      setPassword('');
-      return;
-    }
+    setErrorMessage("");
 
+    if (loginStatus === 0) {
+      checkId();
+    } else if (loginStatus === 1) {
+      handleSignIn();
+    } else if (loginStatus === 2) {
+      handleSignUp();
+    }
+  };
+
+  const checkId = async () => {
     try {
-      const loginResponse = await axios.post(process.env.REACT_APP_BACK_URL+"/login",
-        {
-          userid,
-          password
-        }
-      );
-      if (loginResponse.status === 200) {
-        // 2시간 후 만료되는 쿠키 생성
+      const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/check/${id}`);
+      setLoginStatus(response.data.data.status);
+    } catch (error) {
+      console.error("오류 발생:", error);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACK_URL}/login`, {
+        id,
+        password
+      });
+      if (response.data.code === 200) {
         const expires = moment().add(48, "hours").toDate();
-        setCookie("token", loginResponse.data.token, {
-          path: "/",
-          expires: expires,
-        });
-        setCookie("userId", loginResponse.data.userId, {
-          path: "/",
-          expires: expires,
-        });
-        setCookie("nickname", loginResponse.data.nickname, {
-          path: "/",
-          expires: expires,
-        });
-        setCookie("roles", loginResponse.data.roles, {
-          path: "/",
-          expires: expires,
-        });
-        setCookie("certification", loginResponse.data.certification, {
-          path: "/",
-          expires: expires,
-        });
+        setCookie("id", response.data.data.id, { path: "/", expires });
+        setCookie("token", response.data.data.token, { path: "/", expires });
+        setCookie("userId", response.data.data.userId, { path: "/", expires });
+        setCookie("nickname", response.data.data.nickname, { path: "/", expires });
+        setCookie("imgPath", response.data.data.imgPath, { path: "/", expires });
         navigate("/");
+      } else {
+        setErrorMessage("아이디 또는 비밀번호를 확인하세요.");
       }
     } catch (error) {
-      if (error.response && error.response.status === 404) { // 아이디가 틀리다면
-        window.alert("아이디를 다시 확인해주세요.");
-      } else if (error.response && error.response.status === 401) { // 비밀번호가 틀리다면
-        window.alert("비밀번호가 올바르지 않습니다.");
-      } else {
-        console.error("오류 발생:", error);
+      console.error("Sign in error:", error);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!password || !nickname || !file) {
+      setErrorMessage("모든 항목을 작성해주세요.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('request', new Blob([JSON.stringify({
+      id,
+      nickname,
+      password
+    })],
+    {
+      type : "application/json"
+    }));
+    formData.append('pic', file);
+
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACK_URL}/register`,  
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (response.data.code === 200) {
+        const expires = moment().add(48, "hours").toDate();
+        setCookie("id", response.data.data.id, { path: "/", expires });
+        setCookie("token", response.data.data.token, { path: "/", expires });
+        setCookie("userId", response.data.data.userId, { path: "/", expires });
+        setCookie("nickname", response.data.data.nickname, { path: "/", expires });
+        setCookie("imgPath", response.data.data.imgPath, { path: "/", expires });
+        navigate("/");
+      } else if (response.data.code === 409) {
+        setErrorMessage("이미 해당 아이디를 사용하는 계정이 존재합니다.");
       }
+    } catch (error)      {
+      console.error("Sign up error:", error);
     }
   };
-  const activeEnter = (event) => {
-    if (event.code === 'Enter') {
-      handleLogin(event);
-    }
-  };
+
+  useEffect(() => {
+    setLoginStatus(0);
+  }, [id]);
 
   return (
-    <div>
-      <LoginBox>
-        {/* 타이틀 */}
-        <Title>
-          <SubTitle>
-            당장 필요할때 바로 빌리자
-          </SubTitle>
-          <Link to={"/"}>Baram</Link>
-        </Title>
-
-        {/* 아이디 */}
-        <InputBox
-          type="text"
-          ref={useridRef}
-          name="id"
-          value={userid}
-          placeholder="아이디"
-          onChange={(e) => {
-            setUserid(e.target.value);
-          }}
-          onKeyDown={(e) => { activeEnter(e) }}
+    <Content>
+      <Title>책담</Title>
+      {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
+      <InputBox 
+        placeholder="아이디" 
+        value={id} 
+        onChange={(e) => setId(e.target.value)} 
+      />
+      {loginStatus === 2 && (
+        <>
+          <InputBox 
+            placeholder="닉네임" 
+            value={nickname} 
+            onChange={(e) => setNickname(e.target.value)} 
+          />
+          <InputBox 
+            placeholder="비밀번호" 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+          />
+          <InputBox 
+            placeholder="비밀번호 확인" 
+            type="password" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
+          />
+          <FileInputWrapper>
+            {/* FileButton에서 파일 선택을 트리거 */}
+            <FileButton
+              type="button" // button 타입으로 설정
+              onClick={() => document.getElementById("file-input").click()} // 파일 선택을 클릭으로 트리거
+              isFileSelected={file !== null}
+            >
+              {file ? "파일이 선택되었습니다" : "프로필 사진 선택"}
+            </FileButton>
+            {/* 실제 파일 입력 창은 보이지 않게 설정 */}
+            <FileInput 
+              id="file-input" 
+              type="file" 
+              onChange={handleFileChange} 
+            />
+          </FileInputWrapper>
+        </>
+      )}
+      {loginStatus === 1 && (
+        <InputBox 
+          placeholder="Password" 
+          type="password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
         />
-
-        {/* 비밀번호 */}
-        <InputBox
-          type="password"
-          ref={passwordRef}
-          name="password"
-          value={password}
-          placeholder="비밀번호"
-          onChange={(e) => {
-            setPassword(e.target.value);
-          }}
-          onKeyDown={(e) => { activeEnter(e) }} />
-
-        {/* 제출 버튼 */}
-        <SubmitBtn onClick={handleLogin}>로그인</SubmitBtn>
-        <ForgotPassword>비밀 번호를 잊으셨나요?</ForgotPassword>
-        <Link to={"/signup"}>
-          <GoToSignUp>회원가입 하러가기</GoToSignUp>
-        </Link>
-      </LoginBox>
-      <Footer></Footer>
-    </div>
+      )}
+      <Login onClick={handleContinueClick}>
+        {loginStatus === 2 ? "회원가입" : "다음"}
+      </Login>
+    </Content>
   );
 };
 

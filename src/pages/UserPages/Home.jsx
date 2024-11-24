@@ -2,7 +2,6 @@ import Header from "../../components/layout/Header";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useState, useEffect } from 'react';
-import RecentPosts from "../../components/page/Home/RecentPosts";
 import { useCookies } from "react-cookie";
 import moment from "moment";
 import axios from "axios";
@@ -27,13 +26,13 @@ const Content = styled.div`
 
 
 const Home = () => {
-
+  const [roomId, setRoomId] = useState(""); // 종목 목록 상태
   return (
     <HomeContainer>
       <Header/>
       <Content>
-        <ChatRoomList/>
-        <Chat/>
+        <ChatRoomList roomId={roomId} setRoomId={setRoomId}/>
+        <Chat roomId={roomId}/>
       </Content>
     
     </HomeContainer>

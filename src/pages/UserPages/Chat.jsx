@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import styled from "styled-components";
 import axios from "axios";
@@ -8,6 +8,7 @@ const ChatBox = styled.div`
   position: relative;
   width: 80%;
   height: 90vh;
+  overflow: scroll;
 `;
 
 const DateChange = styled.div`
@@ -65,6 +66,7 @@ const SendBtn = styled.button`
 
 // 최하단 메세지 앵커
 const BottomPoint = styled.div`
+height: 80px;
 `;
 
 
@@ -80,6 +82,7 @@ const MessagesBox = styled.ul`
 const MessageBlock = styled.div`
   text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')};
   width: 100%;
+  margin-top: 10px;
   display: flex;
   /* flex-direction: column; */
   justify-content: ${({ isMe }) => (isMe ? 'flex-end' : 'flex-start')};
@@ -120,7 +123,7 @@ const Message = styled.li`
 
 const UserInfoBox = styled.div`
 `;
-const UserImg = styled.div`
+const UserImg = styled.img`
   width: 40px;
   height: 40px;
   border: 1px solid #eeeeee;
@@ -142,275 +145,163 @@ const MessageContent = styled.div`
   display: flex;
 `;
 
-
-const Chat = () => {
+const Chat = ({ roomId }) => {
   const location = useLocation(); // 상태 전달 받기 위해
   const [cookies] = useCookies(); // 쿠키 사용을 위해
   const { metype, id, interlocutorId, post } = useParams(); // 주소의 파라미터 값 가져오기
   const navigate = useNavigate(); // 페이지 이동을 위해
-  const [rateData, setRateData] = useState(-1);
-  const [review, setReview] = useState("");
-
-  const postId = post;
-  // 오랜 시간이 지나고 채팅 안에서 채팅룸으로 나가면 오류나는 이슈 있음.
-
   const inputMessageRef = useRef(); // 입력 박스 포커스용
   const messagesEndRef = useRef(null); // 메세지 최하단 이동용
   const ws = useRef(null); // 웹소켓
 
-  // 상태
-  const [interlocutorInfo, setInterlocutorInfo] = useState({});
-  const [messageList, setMessageList] = useState([{message:"hello", userId:"1"},{message:"hello", userId:"2"}]);
+  const [messageList, setMessageList] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [postInfo, setPostInfo] = useState({ needAt: [], returnAt: [] });
 
-  const [isDoneModalOn, setIsDoneModalOn] = useState(false);
-  const [isReviewModalOn, setIsReviewModalOn] = useState(false);
+  useEffect(() => {
+    // 메시지가 변경될 때마다 최하단으로 스크롤
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messageList]);  // messageList가 변경될 때마다 실행됨.
 
-  const [isBorrower, setIsBorrower] = useState(false);
-  // 최하단 이동용
-  // useEffect(() => {
-  //   messagesEndRef.current.scrollIntoView();
-  // },);
+  useEffect(() => {
+    if (!cookies.token) {
+      navigate("/signin");
+      return;
+    }
 
-//   useEffect(() => {
-//     if (!cookies.token) {
-//       navigate("/signin");
-//       return;
-//     }
-//     // 로딩 시작
-//     setLoading(true);
-//     // 모든 메세지 가져오기
-//     const fetchUserInfo = async () => {
-//       try {
-//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
-//         if (!cookies.token) {
-//           navigate("/signin");
-//           return;
-//         }
-//         // 메세지 가져오기 api요청
-//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/account?id=" + interlocutorId, {
-//           headers: {
-//             Authorization: `Bearer ${cookies.token}`,
-//           },
-//         });
-//         // 메세지 상태 저장
-//         setInterlocutorInfo(response.data.data);
-        
+    const fetchMessages = async () => {
+      try {
+        // 메세지 가져오기 api요청
+        const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/message/${roomId}`, {
+          headers: {
+            Authorization: `Bearer ${cookies.token}`,
+          },
+        });
+        setMessageList(response.data.data);
+      } catch (error) {
+        console.error("오류 발생:", error);
+      }
+    };
 
-//         if (response.data.code != 200) {
-//           navigate("/signin");
-//         }
-//       } catch (error) {
-//         console.error("오류 발생:", error);
-//       }
-//     };
+    if (roomId.length !== 0) {
+      fetchMessages();
+    }
+  }, [roomId, cookies.token, navigate]);
 
-//     const fetchMessages = async () => {
-//       try {
-//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
-//         if (!cookies.token) {
-//           navigate("/signin");
-//           return;
-//         }
-//         // 메세지 가져오기 api요청
-//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/message/" + id, {
-//           headers: {
-//             Authorization: `Bearer ${cookies.token}`,
-//           },
-//         });
-//         // 메세지 상태 저장
-//         setMessageList(response.data.data);
-//       } catch (error) {
-//         console.error("오류 발생:", error);
-//       }
+  useEffect(() => {
+    // 컴포넌트가 마운트되면 웹 소켓 연결
+    ws.current = new WebSocket(`${process.env.REACT_APP_BACK_SOKET_URL}/ws/chat`);
 
-//     };
+    // 세션 등록
+    ws.current.onopen = () => {
+      const message = {
+        type: 'ENTER',
+        roomId: roomId,
+        userId: cookies.userId,
+        message: "",
+      };
+      ws.current.send(JSON.stringify(message));
+    };
 
-//     // 게시물 정보 가져오기
-//     const fetchPostInfo = async () => {
-//       try {
-//         // 토큰 쿠키가 없다면 로그인 페이지로 이동
-//         if (!cookies.token) {
-//           navigate("/signin");
-//           return;
-//         }
+    // 메시지를 받으면 실행될 코드
+    ws.current.onmessage = (event) => {
+      const receivedMessage = JSON.parse(event.data);
+      const currentDate = new Date();
+      const newMessage = {
+        chatId: new Date(),
+        userId: receivedMessage.userId,
+        sentAt: new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString(),
+        message: receivedMessage.message,
+      };
+      setMessageList(prevMessageList => [...prevMessageList, newMessage]);
+    };
 
-//         // 게시물 정보 가져오기 api 요청
-//         const response = await axios.get(process.env.REACT_APP_BACK_URL + "/post/" + postId, {
-//           headers: {
-//             Authorization: `Bearer ${cookies.token}`,
-//           },
-//         });
+    return () => {
+      ws.current.close();
+    };
+  }, [cookies.userId, roomId]);
 
-//         setPostInfo(response.data.data);
-//       } catch (error) {
-//         // 없는 게시물 이라면
-//         if (error.response && error.response.status === 404) {
-//           console.error("존재하지 않는 게시물", error);
-//           navigate("/");
-//         } else {
-//           console.error("오류 발생:", error);
-//         }
-//       }
-//     };
-//     fetchMessages();
-//     fetchPostInfo();
-//     fetchUserInfo();
+  // 메세지 보내기
+  const sendMessage = () => {
+    // 아무 입력도 안했다면
+    if (inputMessage < 1) {
+      inputMessageRef.current.focus();
+      return;
+    }
 
-//     let prevVisualViewport = 0
-//     function handleVisualViewportResize() {  
-//       const currentVisualViewport = window.visualViewport.height
-    
-//       if (
-//         prevVisualViewport - 30 > currentVisualViewport &&
-//         prevVisualViewport - 100 < currentVisualViewport
-//       ) {
-//         const scrollHeight = window.document.scrollingElement.scrollHeight
-//         const scrollTop = scrollHeight - window.visualViewport.height
-    
-//         window.scrollTo(0, scrollTop) // 입력창이 키보드에 가려지지 않도록 조절
-//       }
-    
-//       prevVisualViewport = window.visualViewport.height
-//     }
-    
-//     window.visualViewport.onresize = handleVisualViewportResize  
-//     // 0.3초 동안 로딩후 로딩 종료
-//     setTimeout(() => {
-//       setLoading(false);
-//     }, 300)
+    // 메세지 형식으로 변환후 전송
+    const message = {
+      type: 'TALK',
+      roomId: roomId,
+      userId: cookies.userId,
+      message: inputMessage,
+    };
+    ws.current.send(JSON.stringify(message));
+    setInputMessage('');
+    inputMessageRef.current.focus();
 
-//   }, [cookies.token, id, navigate]);
+    // 메세지 보내고 나서도 최하단으로 스크롤
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  };
 
+  const activeEnter = (event) => {
+    if (event.code === 'Enter') {
+      sendMessage();
+    }
+  };
 
-// useEffect(() => {
-//   // 컴포넌트가 마운트되면 웹 소켓 연결
-//   ws.current = new WebSocket(process.env.REACT_APP_BACK_SOKET_URL + '/ws/chat');
+  return (
+    <ChatBox>
+      <MessagesBox>
+        {messageList.length === 0 ? null : messageList.map((message, index) => {
+          const isMe = (message.userId === cookies.userId);
+          return (
+            <div key={index}>
+              {index !== 0 && messageList[index - 1].sentAt.slice(5,10) !== message.sentAt.slice(5,10) ? 
+                <DateChange>{ message.sentAt.slice(0,10).split("-").join("/") }</DateChange> 
+                : null}
+              <MessageBlock isMe={isMe}>
+                {isMe ? null :
+                <UserInfoBox>
+                    <UserImg src={ process.env.REACT_APP_BACK_URL + "/image/" + message.userImgPath}/>
+                </UserInfoBox>
+                }
 
-//   // 세션 등록
-//   ws.current.onopen = () => {
-//     const message = {
-//       type: 'ENTER',
-//       userType: metype === "b" ? "LENDER" : "BORROWER",
-//       roomId: id,
-//       sender: cookies.userId,
-//       message: "",
-//     };
-//     // JSON 형식으로 문자열 변환 후 웹 소켓으로 전송
-//     ws.current.send(JSON.stringify(message));
-//   };
+                <MessageBox>
+                {isMe ? null :
+                <UserName>{message.nickname}</UserName>}
+                <MessageContent>
+                <MessageTime isMe={isMe}>{message.sentAt.slice(11,16)}</MessageTime>
+                <Message key={index} isMe={isMe}>
+                  {message.message}
+                </Message>
+                </MessageContent>
+               
+                </MessageBox>
+              
+              </MessageBlock>
+            </div>
+          );
+        })}
+        <BottomPoint ref={messagesEndRef}></BottomPoint>
+      </MessagesBox>
 
-//   // 메시지를 받으면 실행될 코드
-//   ws.current.onmessage = (event) => {
-//     const receivedMessage = JSON.parse(event.data);
-//     const currentDate = new Date();
-
-//     // 받은 메세지 메세지 리스트 상태에 넣기위해 딕셔너리화
-//     var d= new Date();
-//     const newMessage = {
-//       chatId: new Date(),
-//       sentAt: new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString(),
-//       message: receivedMessage.message,
-//       userType: receivedMessage.userType,
-//     };
-//     setMessageList(prevMessageList => [...prevMessageList, newMessage]);
-//   };
-//   // 컴포넌트가 언마운트될 때 웹 소켓 연결 해제
-//   return () => {
-//     ws.current.close();
-//   };
-// }, [cookies.userId, id, metype]);
-
-// // 메세지 보내기
-// const sendMessage = () => {
-
-//   // 아무 입력도 안했다면
-//   if (inputMessage < 1) {
-//     inputMessageRef.current.focus();
-//     return;
-//   }
-//   // 메세지 형식으로 변환후 전송
-//   const message = {
-//     type: 'TALK',
-//     userType: metype === "b" ? "BORROWER" : "LENDER",
-//     roomId: id,
-//     sender: cookies.userId,
-//     message: inputMessage,
-//   };
-//   ws.current.send(JSON.stringify(message));
-//   setInputMessage('');
-//   inputMessageRef.current.focus();
-// };
-
-// // 엔터 입력하면 전송하도록
-// const activeEnter = (event) => {
-//   if (event.code === 'Enter') {
-//     sendMessage();
-//   }
-// };
-
-
-return (
-  <ChatBox>
-    <MessagesBox>
-      {messageList.length == 0 ? null : messageList.map((message, index) => {
-        const isMe = (message.userId == 2);
-        return (
-          <div>
-            {/* {index !== 0 && messageList[index - 1].sentAt.slice(5,10) !== message.sentAt.slice(5,10) ? <DateChange>{ message.sentAt.slice(0,10).split("-").join("/") }</DateChange> : null} */}
-            <MessageBlock isMe={isMe}>
-              {isMe ? null :
-              <UserInfoBox>
-                  <UserImg>
-
-                  </UserImg>
-                  <UserName>
-
-                  </UserName>
-              </UserInfoBox>
-              }
-
-              <MessageBox>
-              {isMe ? null :
-              <UserName>한강</UserName>}
-              <MessageContent>
-              <MessageTime isMe={isMe}>{"12:30"}</MessageTime>
-              <Message key={index} isMe={isMe}>
-                {message.message}
-              </Message>
-              </MessageContent>
-             
-              </MessageBox>
-            
-            </MessageBlock>
-          </div>
-        );
-
-      })}
-      <BottomPoint ref={messagesEndRef}></BottomPoint>
-    </MessagesBox>
-
-    <MessageInputBox>
-      <InputBox placeholder={postInfo.isClose ? "완료된 요청입니다" : "메세지 보내기"}
-        value={inputMessage}
-        id="inputbox"
-        onChange={(e) => {
-          // setInputMessage(e.target.value);
-        }}
-        autocomplete="off"
-        onKeyPress={(e) => { activeEnter(e) }}
-        // onKeyDown={handleKeyDown}
-        disabled={postInfo.isClose}
-        ref={inputMessageRef}
-      ></InputBox>
-      <SendBtn isNoText={inputMessage < 1}>
-        SEND
-      </SendBtn>
-    </MessageInputBox>
-  </ChatBox>
-);
+      <MessageInputBox>
+        <InputBox
+          placeholder={roomId === "" ? "도서를 선택하세요" : "메세지 보내기"}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          autocomplete="off"
+          onKeyPress={activeEnter}
+          disabled={roomId === ""}
+          ref={inputMessageRef}
+        />
+        <SendBtn onClick={sendMessage} disabled={roomId === ""}>
+          SEND
+        </SendBtn>
+      </MessageInputBox>
+    </ChatBox>
+  );
 };
 
 export default Chat;
