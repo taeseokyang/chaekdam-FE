@@ -61,7 +61,7 @@ const SendBtn = styled.button`
   border-radius: 13px;
   color: #ffffff;
   font-weight: 600;
-  background: #F96B5B;
+  background: ${({ isDisabled }) => (isDisabled ? '#dddddd' : '#F96B5B')};
 `;
 
 // 최하단 메세지 앵커
@@ -121,22 +121,30 @@ const Message = styled.li`
   font-weight: 400;
 `;
 
-const UserInfoBox = styled.div`
-`;
-const UserImg = styled.img`
+const UserImgBox = styled.div`
   width: 40px;
   height: 40px;
+  overflow: hidden;
   border: 1px solid #eeeeee;
   border-radius: 100px;
   margin-right: 10px;
+  display: flex;             
+  justify-content: center;    
+  align-items: center;       
 `;
+
+const UserImg = styled.img`
+  height: 100%;
+  width: auto;  /* 이미지가 비율을 유지하면서 부모 박스에 맞게 크기가 조정됩니다. */
+`;
+
 const UserName = styled.div`
   font-weight: 500;
   color: #333333;
 `;
 
 const MessageBox = styled.div`
-  text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')};
+  /* text-align:  ${({ isMe }) => (isMe ? 'right' : 'left')}; */
   display: flex;
   flex-direction: column;
 `;
@@ -144,6 +152,20 @@ const MessageBox = styled.div`
 const MessageContent = styled.div`
   display: flex;
 `;
+const LoadButton = styled.button`
+  outline: none;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #bcbcbc;
+  float: right;
+  margin-bottom: 10px;
+`;
+
+
+
+
 
 const Chat = ({ roomId }) => {
   const location = useLocation(); // 상태 전달 받기 위해
@@ -152,38 +174,48 @@ const Chat = ({ roomId }) => {
   const navigate = useNavigate(); // 페이지 이동을 위해
   const inputMessageRef = useRef(); // 입력 박스 포커스용
   const messagesEndRef = useRef(null); // 메세지 최하단 이동용
+  const messagesTopRef = useRef(null); // 메세지 최하단 이동용
   const ws = useRef(null); // 웹소켓
 
   const [messageList, setMessageList] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [isLoadPastMessage, setIsLoadPastMessage] = useState(false);
+
+  const fetchMessages = async (lastMessageId = 999999) => {
+    try {
+      // 메세지 가져오기 api요청
+      const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/message/${roomId}?lastMessageId=${lastMessageId}`, {
+        headers: {
+          Authorization: `Bearer ${cookies.token}`,
+        },
+      });
+      setMessageList(prevMessages => [...response.data.data, ...prevMessages]);
+      if (lastMessageId != 999999){
+        setIsLoadPastMessage(true);
+      }
+    } catch (error) {
+      console.error("오류 발생:", error);
+    }
+  };
 
   useEffect(() => {
-    // 메시지가 변경될 때마다 최하단으로 스크롤
-    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [messageList]);  // messageList가 변경될 때마다 실행됨.
+    if (isLoadPastMessage){
+      messagesTopRef.current.scrollIntoView({ behavior: 'smooth' });
+    }else{
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsLoadPastMessage(false);
+
+  }, [messageList]); 
 
   useEffect(() => {
     if (!cookies.token) {
       navigate("/signin");
       return;
     }
-
-    const fetchMessages = async () => {
-      try {
-        // 메세지 가져오기 api요청
-        const response = await axios.get(`${process.env.REACT_APP_BACK_URL}/message/${roomId}`, {
-          headers: {
-            Authorization: `Bearer ${cookies.token}`,
-          },
-        });
-        setMessageList(response.data.data);
-      } catch (error) {
-        console.error("오류 발생:", error);
-      }
-    };
-
+  
     if (roomId.length !== 0) {
+      setMessageList([]);
       fetchMessages();
     }
   }, [roomId, cookies.token, navigate]);
@@ -192,23 +224,28 @@ const Chat = ({ roomId }) => {
     // 컴포넌트가 마운트되면 웹 소켓 연결
     ws.current = new WebSocket(`${process.env.REACT_APP_BACK_SOKET_URL}/ws/chat`);
 
-    // 세션 등록
-    ws.current.onopen = () => {
-      const message = {
-        type: 'ENTER',
-        roomId: roomId,
-        userId: cookies.userId,
-        message: "",
+    if (roomId.length !== 0) {
+      ws.current.onopen = () => {
+        const message = {
+          type: 'ENTER',
+          roomId: roomId,
+          userId: cookies.userId,
+          message: "",
+        };
+        ws.current.send(JSON.stringify(message));
       };
-      ws.current.send(JSON.stringify(message));
-    };
+    }
+   
 
     // 메시지를 받으면 실행될 코드
     ws.current.onmessage = (event) => {
       const receivedMessage = JSON.parse(event.data);
       const currentDate = new Date();
+      console.log(receivedMessage);
       const newMessage = {
         chatId: new Date(),
+        nickname: receivedMessage.nickname,
+        userImgPath: receivedMessage.userImgPath,
         userId: receivedMessage.userId,
         sentAt: new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString(),
         message: receivedMessage.message,
@@ -232,6 +269,8 @@ const Chat = ({ roomId }) => {
     // 메세지 형식으로 변환후 전송
     const message = {
       type: 'TALK',
+      nickname: cookies.nickname,
+      userImgPath: cookies.imgPath,
       roomId: roomId,
       userId: cookies.userId,
       message: inputMessage,
@@ -241,7 +280,7 @@ const Chat = ({ roomId }) => {
     inputMessageRef.current.focus();
 
     // 메세지 보내고 나서도 최하단으로 스크롤
-    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    // messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
   };
 
   const activeEnter = (event) => {
@@ -250,9 +289,19 @@ const Chat = ({ roomId }) => {
     }
   };
 
+
+  const loadMoreMessages = () => {
+    const firstMessageId = messageList[0]?.chatId;
+    if (firstMessageId) {
+      fetchMessages(firstMessageId); // 첫 번째 메시지 id로 이전 메시지 요청
+    }
+  };
+
   return (
     <ChatBox>
       <MessagesBox>
+        {messageList.length < 20 ?  null :
+        <LoadButton onClick={loadMoreMessages} ref={messagesTopRef}>이전 대화 불러오기</LoadButton>}
         {messageList.length === 0 ? null : messageList.map((message, index) => {
           const isMe = (message.userId === cookies.userId);
           return (
@@ -262,9 +311,9 @@ const Chat = ({ roomId }) => {
                 : null}
               <MessageBlock isMe={isMe}>
                 {isMe ? null :
-                <UserInfoBox>
-                    <UserImg src={ process.env.REACT_APP_BACK_URL + "/image/" + message.userImgPath}/>
-                </UserInfoBox>
+                <UserImgBox>
+                    <UserImg src={ message.userImgPath == "default.png" ? "/image/default.png" :process.env.REACT_APP_BACK_URL + "/image/" + message.userImgPath}/>
+                </UserImgBox>
                 }
 
                 <MessageBox>
@@ -296,7 +345,7 @@ const Chat = ({ roomId }) => {
           disabled={roomId === ""}
           ref={inputMessageRef}
         />
-        <SendBtn onClick={sendMessage} disabled={roomId === ""}>
+        <SendBtn onClick={sendMessage} disabled={roomId === ""} isDisabled={roomId === ""}>
           SEND
         </SendBtn>
       </MessageInputBox>
