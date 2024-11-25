@@ -258,6 +258,7 @@ const Chat = ({ roomId }) => {
 
   return (
     <ChatBox>
+      {/* 메세지 */}
       <MessagesBox>
         {messageList.length < 20 ? null :
           <LoadButton onClick={loadMoreMessages} ref={messagesTopRef}>이전 대화 불러오기</LoadButton>}
@@ -265,6 +266,7 @@ const Chat = ({ roomId }) => {
           const isMe = (message.userId === cookies.userId);
           return (
             <div key={index}>
+              {/* 날짜 변경 알림 텍스트 */}
               {index !== 0 && messageList[index - 1].sentAt.slice(5, 10) !== message.sentAt.slice(5, 10) ?
                 <DateChange>{message.sentAt.slice(0, 10).split("-").join("/")}</DateChange>
                 : null}
@@ -292,6 +294,8 @@ const Chat = ({ roomId }) => {
         })}
         <BottomPoint ref={messagesEndRef}></BottomPoint>
       </MessagesBox>
+
+      {/* 입력 박스 */}
       <MessageInputBox>
         <InputBox
           placeholder={roomId === "" ? "도서를 선택하세요" : "메세지 보내기"}
